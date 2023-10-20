@@ -38,7 +38,7 @@ app.use(session({ // Set up session
     cookie: {
         // Set a default maxAge for the session (e.g., 1 hour)
         maxAge: 60 * 60 * 1000, // 1 hour in milliseconds
-      },
+    },
 }));
 
 app.use('/', routes); // configure express to use routes.js
@@ -56,9 +56,8 @@ dotenv.config(); // configure dotenv
 port = process.env.PORT; // set the port based on the .env file
 hostname = process.env.HOSTNAME; // set the hostname based on the .env file
 
-app.listen(port, hostname, function () {
-    console.log('Server running at: ');
-    console.log('http://' + hostname + ':' + port);
+app.listen(port, function () {
+    console.log('Server running at: ' + port);
 });
 
 // connects to the database

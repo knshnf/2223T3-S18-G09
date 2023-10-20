@@ -11,10 +11,12 @@ const Review = require('../models/ReviewModel.js');
 const Establishment = require('../models/EstablishmentModel.js');
 const { redirectRoot } = require('./controller.js');
 
-const profileController = {
-    getProfile: async function (req, res) {
+//password hashing
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+const salt = bcrypt.genSaltSync(saltRounds);
 
-    },
+const profileController = {
 
     // this is for rendering the profile page
     getUpdateProfile: async function (req, res) {
@@ -67,13 +69,14 @@ const profileController = {
 
         var userResult = await db.findOne(User, userQuery, userProjection);
 
-        /* TODO: get the number of reviews from the user using findMany in the Review Collections */
-
-        /*
-        var reviewProjection = {
-            username: 1
+        if (userResult == null) {
+            error = {
+                code: 404,
+                error: 'User does not exist...'
+            }
+            res.render('error', error); 
+            return
         }
-        */
 
         var reviewResult = await db.findMany(Review, userQuery);
 
@@ -119,9 +122,12 @@ const profileController = {
     },
 
     postUpdate: async function (req,res) {
-        const currentUser = req.session.user;
+        const currentUser = req.session.user; 
+        //var oldhash = bcrypt.hashSync(req.body.oldPassword, salt);
+        var newhash = bcrypt.hashSync(req.body.newPassword, salt);
+
         var userQuery = { username: currentUser };
-        var userResult = await db.findOne(User, userQuery);
+        var userResult = await db.findOne(User, userQuery); 
         var noDup = await db.findOne(User, {username: req.body.username}, {username: 1});
 
         var files =  req.files;
@@ -165,12 +171,12 @@ const profileController = {
             }
         }
 
+        var results = bcrypt.compareSync(req.body.oldPassword, userResult.password);
         if (noDup && !noDup.username == currentUser){
             console.log('Username Already Exists!');
         }
-        else if(userResult.password == req.body.oldPassword || req.body.oldPassword == ""){
-            var updatePassword = req.body.newPassword;
-            
+        else if(results || req.body.oldPassword == ""){
+            var updatePassword = newhash;
             if (req.body.newPassword == "" || req.body.oldPassword == ""){
                 updatePassword = userResult.password;
             }
@@ -185,13 +191,9 @@ const profileController = {
                 bannerImagePath: pathName2
             }
 
-            // console.log(update);
-
             const updateData = await db.updateOne(User,{username: userResult.username},update);
             req.session.user = req.body.username;
             req.session.save();
-            //i have no clue how to redirect it back to user-profile
-            //res.render('user-profile-overview');
         }
         else {
             console.log('Incorrect Password');
